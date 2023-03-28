@@ -1,0 +1,13 @@
+name: Geenius_App
+title: Geenius_App
+username:
+account: sempa
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6081455
+bundleId: 5794155
+url: https://sempa.shinyapps.io/Geenius_App/
+when: 1649854860.22226
+lastSyncTime: 1649854860.22226
+asMultiple: FALSE
+asStatic: FALSE
