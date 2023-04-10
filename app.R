@@ -29,22 +29,10 @@ source("likelihood_function - generic.R")
 # )
 
 # Percentile curves
-# pct_vs_t_logit_cubic_sedia <- readRDS("data/pct_data_logitcubic_sedia.rds")
-# pct_vs_t_logit_cubic_architect <- readRDS("data/pct_data_logitcubic_architect.rds")
-# pct_vs_t_logit_cubic_Maxim <- readRDS("data/pct_data_logitcubic_Maxim.rds")
 pct_vs_t_logit_cubic_Geenius <- readRDS("data/pct_data_logitcubic_Geenius.rds")
-# pct_vs_t_logit_cubic_ArchitectUnmodified <- readRDS("data/pct_data_logitcubic_ArchitectUnmodified.rds")
-# Likelihood curves
-# pr_t_logit_cubic_sedia <- readRDS("data/pr_t_logit_evaluations_sedia.rds")
-# pr_t_loglog_cubic_sedia <- readRDS("data/pr_t_loglog_evaluations_sedia.rds")
-# pr_t_logit_cubic_architect <- readRDS("data/pr_t_logit_evaluations_architect.rds")
-# pr_t_loglog_cubic_architect <- readRDS("data/pr_t_loglog_evaluations_architect.rds")
-# pr_t_logit_cubic_Maxim <- readRDS("data/pr_t_logit_evaluations_Maxim.rds")
-# pr_t_loglog_cubic_Maxim <- readRDS("data/pr_t_loglog_evaluations_Maxim.rds")
+# likelihood data
 pr_t_logit_cubic_Geenius <- readRDS("data/pr_t_logit_evaluations_Geenius.rds")
 pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
-# pr_t_logit_cubic_ArchitectUnmodified <- readRDS("data/pr_t_logit_evaluations_ArchitectUnmodified.rds")
-# pr_t_loglog_cubic_ArchitectUnmodified <- readRDS("data/pr_t_loglog_evaluations_ArchitectUnmodified.rds")
 
 ui <- navbarPage("Biomarker posteriors and percentile curves",
   theme = shinytheme("flatly"),
@@ -296,7 +284,8 @@ ui <- navbarPage("Biomarker posteriors and percentile curves",
       ),
       fluidRow(
         box("Posterior curve", plotOutput("distPlot_genious")),
-        box("Percentile curve", plotOutput("pctPlot_genious"))
+        box("Percentile curve", plotOutput("pctPlot_genious")),
+        box("Summary table", tableOutput("summary_table_genious"))
       )
 
     )
@@ -638,6 +627,7 @@ server <- shinyServer(function(input, output) {
     dat_combine <- dat_combine %>%
       filter(!is.na(time_t)) %>%
       mutate(`assay value` = as.factor(assay_value))
+    
     plot2 <- ggplot(
       data = dat_combine,
       aes(x = time_t, y = bigL, colour = `assay value`)
@@ -660,7 +650,46 @@ server <- shinyServer(function(input, output) {
       )
 
     plot2
+  })   
+  
+  output$summary_table_genious = renderTable({
+    assay_value_th_genious <- input$assay_value_th_genious
+    dat_combine <- data.frame(l = NA, time_t = NA, bigL = NA, assay_value = NA)
+    for (i in 1:length(input$assay_value_th_genious)) {
+      # browser()
+      likelihood <- likelihood_fun(
+        param_datset = likelihood_param_quad_function(
+          dat = as.matrix(pr_t_logit_cubic_Geenius),
+          target_assay_value = input$assay_value_th_genious[i],
+          around_assay_value = seq(0.01, 3, .15),
+          t_since_ln = seq(0, input$GV_interval_length_genious, input$GV_interval_step_genious)
+        ),
+        assay_value = input$assay_value_th_genious[i],
+        t_since_ln = seq(0, input$GV_interval_length_genious, input$GV_interval_step_genious)
+      ) %>%
+        mutate(assay_value = input$assay_value_th_genious[i])
+      dat_combine <- rbind(dat_combine, likelihood)
+    }
+    
+    dat_combine <- dat_combine %>%
+      filter(!is.na(time_t)) %>%
+      mutate(`assay value` = as.factor(assay_value))
+    
+    summary_table_gi_1 <- dat_combine %>%
+      filter(!is.na(assay_value)) %>%
+      group_by(assay_value) %>%
+      summarise(`mode val` = approx(x = bigL, y = time_t, 
+                                  xout = max(bigL, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
+                `25th percentile` = approx(x = bigL, y = time_t,
+                                    xout = quantile(bigL, probs = .25, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
+                `50th percentile` = approx(x = bigL, y = time_t,
+                                    xout = quantile(bigL, probs = .5, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
+                `75th percentile` = approx(x = bigL, y = time_t,
+                xout = quantile(bigL, probs = .75, na.rm = T), method = "constant", ties = mean, rule = 2)$y
+      )
+
   })
+
 })
 
 # shinyApp(ui, server)
