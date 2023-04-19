@@ -5,9 +5,9 @@ account: sempa
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6081455
-bundleId: 5794155
+bundleId: 7108076
 url: https://sempa.shinyapps.io/Geenius_App/
-when: 1649854860.22226
-lastSyncTime: 1649854860.22226
+when: 1681889378.14918
+lastSyncTime: 1681889378.14919
 asMultiple: FALSE
 asStatic: FALSE

@@ -3,7 +3,7 @@
     "path": "~/GitHub/Geenius_App/app.R",
     "project_path": "app.R",
     "type": "r_source",
-    "hash": "1306275159",
+    "hash": "3186240970",
     "contents": "",
     "dirty": false,
     "created": 1680770593794.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "406,92",
-        "scrollLine": "399"
+        "cursorPosition": "38,0",
+        "scrollLine": "38"
     },
     "folds": "",
-    "lastKnownWriteTime": 1681886753,
+    "lastKnownWriteTime": 1681889358,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1681886753230,
+    "last_content_update": 1681889358887,
     "read_only": false,
     "read_only_alternatives": []
 }

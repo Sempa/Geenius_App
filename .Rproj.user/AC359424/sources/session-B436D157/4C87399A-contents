@@ -36,218 +36,7 @@ pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 
 ui <- navbarPage("Biomarker posteriors and percentile curves",
   theme = shinytheme("flatly"),
-  # tabPanel("home",
-  #   icon = icon("home"),
-  #   tags$head(tags$script(HTML('
-  #       var fakeClick = function(tabName) {
-  #         var dropdownList = document.getElementsByTagName("a");
-  #         for (var i = 0; i < dropdownList.length; i++) {
-  #           var link = dropdownList[i];
-  #           if(link.getAttribute("data-value") == tabName) {
-  #             link.click();
-  #           };
-  #         }
-  #       };
-  #     '))),
-  #   basicPage(
-  #     uiOutput(outputId = "text")
-  #   ),
-  #   jumbotron("Welcome to the continuous diagnostic markers' infection dating tool",
-  #     "This App develops biomarker posteriors and percentile curve for the following assays",
-  #     button = FALSE
-  #     
-  #   ),
-  #   fluidRow(
-  #     column(6, panel_div(
-  #       class_type = "primary", panel_title = "Sedia LAg Assay",
-  #       box("Sedia LAg Assay", onclick = "fakeClick('Sedia LAg Assay')")
-  #     )),
-  #     column(6, panel_div(
-  #       class_type = "success", panel_title = "Maxim LAg Assay",
-  #       box("Maxim LAg Assay", onclick = "fakeClick('Maxim LAg Assay')")
-  #     ))
-  #   ),
-  #   fluidRow( 
-  #     column(6, panel_div(
-  #       class_type = "info", panel_title = "Architect avidity assay",
-  #       box("Architect avidity assay", onclick = "fakeClick('Architect avidity assay')")
-  #     )),
-  #     column(6, panel_div(
-  #       class_type = "danger", panel_title = "Architect Unmodified assay",
-  #       box("Architect Unmodified assay", onclick = "fakeClick('Architect Unmodified assay')")
-  #     ))
-  #   ),
-  #   fluidRow( # box("Architect avidity assay", onclick = "fakeClick('Architect avidity assay')")
-  #     column(6, panel_div(
-  #       class_type = "warning", panel_title = "Bio-rad Geenius avidity assay",
-  #       box("Geenius avidity assay", onclick = "fakeClick('Geenius avidity assay')")
-  #     ))
-  #   ) 
-  # ),
-  # tabPanel(
-  #   "Sedia LAg Assay",
-  #   sidebarLayout(
-  #     sidebarPanel(
-  #       width = 6,
-  #       box(
-  #         title = "", # Sedia LAg Assay
-  #         solidHeader = TRUE,
-  #         numericInput(
-  #           inputId = "assay_value_th_Sedia",
-  #           label = "Value of the recency marker",
-  #           min = 0.001,
-  #           max = 4,
-  #           value = 0.5,
-  #           step = 0.001
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_length_Sedia",
-  #           label = "What is the time interval between last negative and first positive",
-  #           min = 50,
-  #           max = 600,
-  #           value = 400,
-  #           step = 1
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_step_Sedia",
-  #           label = "Inter-test interval step size",
-  #           min = 1,
-  #           max = 7,
-  #           value = 2,
-  #           step = 1
-  #         ),
-  #       )
-  #     ),
-  #     fluidRow(
-  #       box("Posterior curve", plotOutput("distPlot_Sedia")),
-  #       box("Percentile curve", plotOutput("pctPlot_Sedia"))
-  #     )
-  #     
-  #   )
-  # )#,
-  # tabPanel(
-  #   "Maxim LAg Assay",
-  #   sidebarLayout(
-  #     sidebarPanel(
-  #       width = 6,
-  #       box(
-  #         title = "",
-  #         solidHeader = TRUE,
-  #         numericInput(
-  #           inputId = "assay_value_th_maxim",
-  #           label = "Value of the recency marker",
-  #           min = 0.001,
-  #           max = 4,
-  #           value = 0.5,
-  #           step = 0.001
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_length_Maxim",
-  #           label = "What is the time interval between last negative and first positive",
-  #           min = 50,
-  #           max = 600,
-  #           value = 400,
-  #           step = 1
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_step_Maxim",
-  #           label = "Inter-test interval step size",
-  #           min = 1,
-  #           max = 7,
-  #           value = 2,
-  #           step = 1
-  #         ),
-  #       )
-  #     ),
-  #     fluidRow(
-  #       box("Posterior curve", plotOutput("distPlot_Maxim")),
-  #       box("Percentile curve", plotOutput("pctPlot_Maxim"))
-  #     )
-  # 
-  #   )
-  # ),
-  # tabPanel(
-  #   "Architect avidity assay",
-  #   sidebarLayout(
-  #     sidebarPanel(
-  #       width = 8,
-  #       box(
-  #         title = "", # Architect avidity assay
-  #         solidHeader = TRUE,
-  #         numericInput(
-  #           inputId = "assay_value_th_architect",
-  #           label = "value of the recency marker",
-  #           min = 20,
-  #           max = 120,
-  #           value = 70,
-  #           step = .01
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_length_architect",
-  #           label = "What is the time interval between last negative and first positive",
-  #           min = 50,
-  #           max = 600,
-  #           value = 400,
-  #           step = 1
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_step_architect",
-  #           label = "Inter-test interval step size",
-  #           min = 1,
-  #           max = 7,
-  #           value = 2,
-  #           step = 1
-  #         ),
-  #       )
-  #     ),
-  #     fluidRow(
-  #       box("Posterior curve", plotOutput("distPlot_architect")),
-  #       box("Percentile curve", plotOutput("pctPlot_architect"))
-  #     )
-  #     
-  #   )
-  # ),
-  # tabPanel(
-  #   "Architect Unmodified assay",
-  #   sidebarLayout(
-  #     sidebarPanel(
-  #       width = 8,
-  #       box(
-  #         title = "", # Architect Unmodified assay
-  #         solidHeader = TRUE,
-  #         numericInput(
-  #           inputId = "assay_value_th_ArchitectUnmodified",
-  #           label = "value of the recency marker",
-  #           min = 0,
-  #           max = 500,
-  #           value = 70,
-  #           step = .01
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_length_ArchitectUnmodified",
-  #           label = "What is the time interval between last negative and first positive",
-  #           min = 50,
-  #           max = 600,
-  #           value = 400,
-  #           step = 1
-  #         ),
-  #         numericInput(
-  #           inputId = "GV_interval_step_ArchitectUnmodified",
-  #           label = "Inter-test interval step size",
-  #           min = 1,
-  #           max = 7,
-  #           value = 2,
-  #           step = 1
-  #         ),
-  #       )
-  #     ),
-  #     fluidRow(
-  #       box("Posterior curve", plotOutput("distPlot_ArchitectUnmodified")),
-  #       box("Percentile curve", plotOutput("pctPlot_ArchitectUnmodified"))
-  #     )
-  #     
-  #   )
-  # ),
+
   tabPanel(
     title = "Geenius avidity assay",
     sidebarLayout(
@@ -274,11 +63,11 @@ ui <- navbarPage("Biomarker posteriors and percentile curves",
           ),
           numericInput(
             inputId =  "GV_percentile",#"GV_interval_step_genious",
-            label = "Percentile",
+            label = "Posterior percentile",
             min = 0.1,
-            max = 0.99,
-            value = 0.68,
-            step = 0.01
+            max = 0.999,
+            value = 0.682,
+            step = 0.001
           ),
         )
       ),
@@ -403,7 +192,7 @@ server <- shinyServer(function(input, output) {
                                            xout = quantile(bigL, probs = .25, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
                 `50th percentile` = approx(x = bigL, y = time_t,
                                            xout = quantile(bigL, probs = .5, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
-                `68th percentile` = approx(x = bigL, y = time_t,
+                `Posterior percentile` = approx(x = bigL, y = time_t,
                                            xout = quantile(bigL, probs = input$GV_percentile, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
                 `75th percentile` = approx(x = bigL, y = time_t,
                                            xout = quantile(bigL, probs = .75, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
