@@ -3,7 +3,7 @@
     "path": "~/GitHub/Geenius_App/app.R",
     "project_path": "app.R",
     "type": "r_source",
-    "hash": "3186240970",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1680770593794.0,
@@ -12,8 +12,8 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "38,0",
-        "scrollLine": "38"
+        "cursorPosition": "26,0",
+        "scrollLine": "9"
     },
     "folds": "",
     "lastKnownWriteTime": 1681889358,
