@@ -53,13 +53,13 @@ pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 # pct_plot
 
 percentile_func <- function(vec_x, pct) {
-  x <- sort(!is.na(vec_x), decreasing = FALSE)
+  # browser()
   i_th_observation <- round(pct * (length(vec_x) + 1), 0)
-  return(x[i_th_observation])
+  return(vec_x[i_th_observation])
 }
 
-# percentile_func(vec_x = c(1, 3, 5, 6, 9, 11, 12, 13, 19, 21, 22, 32, 35, 36, 45, 44, 
-#                      55, 68, 79, 80, 81, 88, 90, 91, 92, 100, 112, 113, 114, 
+# percentile_func(vec_x = c(1, 3, 5, 6, 9, 11, 12, 13, 19, 21, 22, 32, 35, 36, 45, 44,
+#                      55, 68, 79, 80, 81, 88, 90, 91, 92, 100, 112, 113, 114,
 #                      120, 121, 132, 145, 146, 149, 150, 155, 180, 189, 190),
 #            pct = 0.2) = 20
 # percentile_func(vec_x = c(1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 5, 5, 6, 6), pct = .25) = 2
@@ -86,7 +86,7 @@ dat_combine <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value
       assay_value = assay_value_th_genious,
       t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious) # GV_interval_step_genious
     ) %>%
-      mutate(assay_value = assay_value_th_genious, s_id = dat$s_id[j], int_length = dat$interval_length[j])
+      dplyr::mutate(assay_value = assay_value_th_genious, s_id = dat$s_id[j], int_length = dat$interval_length[j])
     # browser()
     dat_combine <- rbind(dat_combine, likelihood)
   # }
@@ -96,10 +96,33 @@ dat_combine <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value
 
 complete_dataset <- complete_dataset %>%
   filter(!is.na(time_t)) %>%
-  arrange(s_id, time_t)
+  dplyr::mutate(`assay value` = as.factor(assay_value))
 
-summary_dataset <- complete_dataset %>%
-  mutate(id = paste(s_id, assay_value, sep = '_'))%>%
+plot2 <- ggplot(
+  data = complete_dataset,
+  aes(x = time_t, y = bigL, colour = `assay value`)
+) +
+  geom_line(size = 2.0) +
+  xlab("Date of infection (days)") +
+  ylab("Posterior Density") +
+  theme_bw() +
+  scale_x_reverse(expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(0)) +
+  scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
+  coord_fixed(ratio = 1) +
+  theme(
+    text = element_text(size = 18),
+    axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), panel.background = element_blank(),
+    panel.border = element_blank(),
+    aspect.ratio = 1,
+    plot.margin = unit(c(0, 0, 0, 0), "null")
+  )
+
+plot2
+
+percentiles_table <- complete_dataset %>%
+  dplyr::mutate(id = paste(s_id, assay_value, sep = '_'))%>%
   group_by(id) %>%
   dplyr::summarise(`mode value` = approx(x = bigL, y = time_t, 
                                   xout = max(bigL, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
@@ -126,7 +149,7 @@ cumulative_posterior <- complete_dataset %>%
     window_size= round(int_length * f_T, 0),
     t1_f_T = ifelse(t1 + window_size <= int_length, t1 + window_size, int_length)
          ) %>%
-  mutate(id  = paste(s_id, t1, sep = '_'))
+  dplyr::mutate(id  = paste(s_id, t1, sep = '_'))
 
 t1FT_records <- cumulative_posterior %>%
   ungroup() %>%
@@ -136,10 +159,10 @@ t1FT_records <- cumulative_posterior %>%
   dplyr::select(id, bigL, cumsum_posterior)
 
 merged_dataset <- cumulative_posterior %>%
-  mutate(id  = paste(s_id, t1_f_T, sep = '_')) %>%
+  dplyr::mutate(id  = paste(s_id, t1_f_T, sep = '_')) %>%
   right_join(t1FT_records, by = 'id') %>%
   distinct(id, .keep_all = T) %>%
-  mutate(window_probs_t1 = cumsum_posterior.y - cumsum_posterior.x) 
+  dplyr::mutate(window_probs_t1 = cumsum_posterior.y - cumsum_posterior.x) 
 summary_dataset_2 <- merged_dataset %>%
   group_by(s_id) %>%
   dplyr::summarise(max_window_prob = approx(x = window_probs_t1, y = time_t, 
@@ -171,7 +194,7 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
   t_1 <- dat$time_t[1]
   cum_prob <- dat$cumsum_posterior[1]
   dt <- data.frame(id = NA, f_p = NA, cum_prob = NA, sum_prob = NA, t_1_val = NA, t_2_val = NA, t_diff = NA)
-  while ((cum_prob +f_p) <1 & t_1 < max(dat$time_t)) {
+  while ((cum_prob) < (1 - f_p)) {
     prob_sum <- cum_prob + f_p
     t_2 <- approx(x = dat$cumsum_posterior, y = dat$time_t, 
                   xout = prob_sum, method = "constant", ties = mean, rule = 2)$y
@@ -181,7 +204,7 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
   }
   dt2 <- rbind(dt2, dt)
 }
-dt3 <- dt2 %>%
+ide_summary_table <- dt2 %>%
   dplyr::filter(!is.na(id)) %>%
   group_by(id) %>%
   dplyr::mutate(min_diff = min(t_diff)) %>%
@@ -199,27 +222,3 @@ dt3 <- dt2 %>%
                 `f_p ide midpoint` = ide_midpoint, `f_p ide radius` = ide_radius, 
                 `f_t ide lower` = ide_f_t_lower, `f_t window_size` = window_size, 
                 `f_t ide upper` = ide_f_t_upper)
-
-  
-plot2 <- ggplot(
-  data = merged_dataset,
-  aes(x = t1_f_T, y = c_bigL, colour = s_id)
-) +
-  geom_line(size = 2.0) +
-  xlab("Date of infection (days)") +
-  ylab("cumulative posterior") +
-  theme_bw() +
-  scale_x_reverse(expand = c(0, 0)) +
-  scale_y_continuous(breaks = c(0)) +
-  # scale_discrete_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#FB9A99", "#6A3D9A", "#B2DF8A")) + # , "#6A3D9A"
-  coord_fixed(ratio = 1) +
-  theme(
-    text = element_text(size = 18),
-    axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(), panel.background = element_blank(),
-    panel.border = element_blank(),
-    aspect.ratio = 1,
-    plot.margin = unit(c(0, 0, 0, 0), "null")
-  )
-
-plot2
