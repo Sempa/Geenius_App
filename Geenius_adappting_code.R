@@ -52,11 +52,11 @@ pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 #   )
 # pct_plot
 
-percentile_func <- function(vec_x, pct) {
-  # browser()
-  i_th_observation <- round(pct * (length(vec_x) + 1), 0)
-  return(vec_x[i_th_observation])
-}
+# percentile_func <- function(vec_x, pct) {
+#   # browser()
+#   i_th_observation <- round(pct * (length(vec_x) + 1), 0)
+#   return(vec_x[i_th_observation])
+# }
 
 # percentile_func(vec_x = c(1, 3, 5, 6, 9, 11, 12, 13, 19, 21, 22, 32, 35, 36, 45, 44,
 #                      55, 68, 79, 80, 81, 88, 90, 91, 92, 100, 112, 113, 114,
@@ -64,7 +64,9 @@ percentile_func <- function(vec_x, pct) {
 #            pct = 0.2) = 20
 # percentile_func(vec_x = c(1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 5, 5, 6, 6), pct = .25) = 2
 
-dat <- data.frame(s_id = 1:6, assay_value_th = c(0.1, 0.2, .4, .6, .8, 1), interval_length = c(100, 120, 180, 130, 200, 205))# assay_value_th <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
+f_T <- 0.2
+f_p <- .5
+dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value_th = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value_th <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
 # source("likelihood_function - geenius.R")
 complete_dataset <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
 # assay_value_th_genious <- assay_value_th_genious
@@ -98,49 +100,54 @@ complete_dataset <- complete_dataset %>%
   filter(!is.na(time_t)) %>%
   dplyr::mutate(`assay value` = as.factor(assay_value))
 
-plot2 <- ggplot(
-  data = complete_dataset,
-  aes(x = time_t, y = bigL, colour = `assay value`)
-) +
-  geom_line(size = 2.0) +
-  xlab("Date of infection (days)") +
-  ylab("Posterior Density") +
-  theme_bw() +
-  scale_x_reverse(expand = c(0, 0)) +
-  scale_y_continuous(breaks = c(0)) +
-  scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
-  coord_fixed(ratio = 1) +
-  theme(
-    text = element_text(size = 18),
-    axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(), panel.background = element_blank(),
-    panel.border = element_blank(),
-    aspect.ratio = 1,
-    plot.margin = unit(c(0, 0, 0, 0), "null")
-  )
-
-plot2
+# plot2 <- ggplot(
+#   data = complete_dataset,
+#   aes(x = time_t, y = bigL, colour = `assay value`)
+# ) +
+#   geom_line(size = 2.0) +
+#   xlab("Date of infection (days)") +
+#   ylab("Posterior Density") +
+#   theme_bw() +
+#   scale_x_reverse(expand = c(0, 0)) +
+#   scale_y_continuous(breaks = c(0)) +
+#   scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
+#   coord_fixed(ratio = 1) +
+#   theme(
+#     text = element_text(size = 18),
+#     axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank(), panel.background = element_blank(),
+#     panel.border = element_blank(),
+#     aspect.ratio = 1,
+#     plot.margin = unit(c(0, 0, 0, 0), "null")
+#   )
+# 
+# plot2
 
 percentiles_table <- complete_dataset %>%
   dplyr::mutate(id = paste(s_id, assay_value, sep = '_'))%>%
-  group_by(id) %>%
+  group_by(s_id) %>%
+  dplyr::mutate(cum_posterior = cumsum(bigL)) %>%
   dplyr::summarise(`mode value` = approx(x = bigL, y = time_t, 
-                                  xout = max(bigL, na.rm = T), method = "constant", ties = mean, rule = 2)$y,
-            `5th percentile` = approx(x = bigL, y = time_t,
-                                      xout = percentile_func(bigL, pct = .05), method = "constant", ties = mean, rule = 2)$y,
-            `25th percentile` = approx(x = bigL, y = time_t,
-                                       xout = percentile_func(bigL, pct = .25), method = "constant", ties = mean, rule = 2)$y,
-            `50th percentile` = approx(x = bigL, y = time_t,
-                                       xout = percentile_func(bigL, pct = .5), method = "constant", ties = mean, rule = 2)$y,
-            `75th percentile` = approx(x = bigL, y = time_t,
-                                       xout = percentile_func(bigL, pct = .75), method = "constant", ties = mean, rule = 2)$y,
-            `95th percentile` = approx(x = bigL, y = time_t,
-                                       xout = percentile_func(bigL, pct = .95), method = "constant", ties = mean, rule = 2)$y,
-            `Posterior percentile` = approx(x = bigL, y = time_t,
-                                            xout = percentile_func(bigL, pct = .682), method = "constant", ties = mean, rule = 2)$y
+                                  xout = max(bigL, na.rm = T))$y, # , method = "constant", ties = mean, rule = 2
+            `5th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                      xout = 0.05)$y, 0), # , method = "constant", ties = mean, rule = 2
+            `25th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                       xout = 0.25)$y, 0), # , method = "constant", ties = mean, rule = 2
+            `50th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                       xout = 0.5)$y, 0), # , method = "constant", ties = mean, rule = 2
+            `75th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                       xout = 0.75)$y, 0), # , method = "constant", ties = mean, rule = 2
+            `95th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                       xout = 0.95)$y, 0), #, method = "constant", ties = mean, rule = 2
+            `68_2th percentile` = round(approx(x = cum_posterior, y = time_t,
+                                            xout = 0.682)$y, 0) #, method = "constant", ties = mean, rule = 2
             
-  )
-f_T <- 0.5
+  ) %>%
+  mutate(assay_value = seq(0.05, 2, 0.05)) %>%
+  dplyr::select(s_id, `assay value` = assay_value, `mode value`, `5th percentile`,
+                `25th percentile`, `50th percentile`, `68.2th percentile` = `68_2th percentile`,
+                `75th percentile`, `95th percentile`)
+
 cumulative_posterior <- complete_dataset %>%
   dplyr::group_by(s_id) %>%
   dplyr::mutate(cumsum_posterior = cumsum(bigL)) %>%
@@ -166,15 +173,18 @@ merged_dataset <- cumulative_posterior %>%
 summary_dataset_2 <- merged_dataset %>%
   group_by(s_id) %>%
   dplyr::summarise(max_window_prob = approx(x = window_probs_t1, y = time_t, 
-                                    xout = max(window_probs_t1, na.rm = T), method = "constant", ties = mean, rule = 2)$y
+                                    xout = max(window_probs_t1, na.rm = T))$y # , method = "constant", ties = mean, rule = 2
   )
 
 f_t_results <- merged_dataset %>%
   dplyr::mutate(id = paste(s_id, time_t, sep = '_')) %>%
   right_join(summary_dataset_2 %>% mutate(id = paste(s_id, max_window_prob, sep = '_'))) %>%
-  dplyr::select(s_id, assay_value, int_length, f_T, ide_f_t_lower = t1, 
-                window_size, ide_f_t_upper = t1_f_T)
-f_p <- .5
+  dplyr::mutate(`f_t ide radius` = (t1_f_T - t1)/2,
+                `f_t ide midpoint` = t1 + `f_t ide radius`) %>%
+  dplyr::select(s_id, assay_value, int_length, f_T, window_probs_t1, ide_f_t_lower = t1, 
+                window_size, ide_f_t_upper = t1_f_T, `f_t ide radius`,
+                `f_t ide midpoint`)
+
 cumulative_posterior <- complete_dataset %>%
   group_by(s_id) %>%
   dplyr::mutate(cumsum_posterior = cumsum(bigL)) %>%
@@ -196,8 +206,8 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
   dt <- data.frame(id = NA, f_p = NA, cum_prob = NA, sum_prob = NA, t_1_val = NA, t_2_val = NA, t_diff = NA)
   while ((cum_prob) < (1 - f_p)) {
     prob_sum <- cum_prob + f_p
-    t_2 <- approx(x = dat$cumsum_posterior, y = dat$time_t, 
-                  xout = prob_sum, method = "constant", ties = mean, rule = 2)$y
+    t_2 <- round(approx(x = dat$cumsum_posterior, y = dat$time_t, 
+                  xout = prob_sum)$y, 0) #, method = "constant", ties = mean, rule = 2
     dt <- rbind(dt, cbind(id = dat$s_id[i], f_p = f_p, cum_prob = cum_prob, sum_prob = prob_sum, t_1_val = t_1, t_2_val = t_2, t_diff = t_2 - t_1))
     t_1 <- t_1 + 1
     cum_prob <- dat$cumsum_posterior[dat$time_t==t_1]
@@ -220,5 +230,7 @@ ide_summary_table <- dt2 %>%
   left_join(f_t_results %>% mutate(id = s_id), by = 'id') %>%
   dplyr::select(id, assay_value, f_T, f_p, int_length, `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
                 `f_p ide midpoint` = ide_midpoint, `f_p ide radius` = ide_radius, 
-                `f_t ide lower` = ide_f_t_lower, `f_t window_size` = window_size, 
-                `f_t ide upper` = ide_f_t_upper)
+                `f_t window prob` = window_probs_t1, `f_t window_size` = window_size, `f_t ide lower` = ide_f_t_lower, 
+                `f_t ide upper` = ide_f_t_upper, `f_t ide midpoint`,
+                `f_t ide radius`
+                )
