@@ -139,15 +139,16 @@ likelihood_param_quad_function <- function(dat, target_assay_value, around_assay
     counter <- counter + 1
     m1 <- suppressWarnings(glm2::glm2(pr_t ~ 1 + threshold + I(threshold^2), #
                                       family = stats::gaussian(link = "identity"),
-                                      data = subset(dat, vec_time == t_since_ln[i])
+                                      data = subset(dat, GV_vec_time == t_since_ln[i])
     ))
     
     pr_t_slope_data[counter, ] <- c(
-      t_var = vec_time[i],
+      t_var = t_since_ln[i], #GV_vec_time[i],
       intercept = m1$coefficients[[1]],
       linear_term = m1$coefficients[[2]],
       quad_term = m1$coefficients[[3]]
     )
+    # print(i)
   }
   return(pr_t_slope_data)
 }
@@ -160,7 +161,7 @@ likelihood_param_quad_function <- function(dat, target_assay_value, around_assay
 #' @param assay_value is the target assay_value
 #' @param t_since_ln vector of time points in the inter-test interval
 #'
-likelihood_fun <- function(param_datset, assay_value, t_since_ln) {
+likelihood_fun <- function(param_datset, assay_value, t_since_ln, lpddi_val) {
   # browser()
   l <- rep(0, length(t_since_ln))
   ff <- expression(1 + param1 * t + param2 * t^2)
@@ -173,12 +174,23 @@ likelihood_fun <- function(param_datset, assay_value, t_since_ln) {
     t <- assay_value
     l[counter] <- eval(f)
   }
-  
-  likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
+  # browser()
+  if(is.na(lpddi_val)) {
+    likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
+      mutate(
+        # lpddi_val = rep(lpddi_val, length(t_since_ln)),
+        time_t = t_since_ln,
+        bigL = l / (trapz(time_t, l))
+      )
+  }else{
+    likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
     mutate(
+      # lpddi_val = rep(lpddi_val, length(t_since_ln)),
       time_t = t_since_ln,
-      bigL = l / (trapz(time_t, l))
+      bigL = ifelse(t_since_ln > lpddi_val, l / (trapz(time_t, l)), 0)
     )
+  }
+  
   return(likelihood)
 }
-vec_time  = seq(0, 1000, 1)
+# GV_vec_time  = seq(0, 1000, 1)

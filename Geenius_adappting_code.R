@@ -66,18 +66,28 @@ pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 
 f_T <- 0.2
 f_p <- .5
-dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value_th = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value_th <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
+# dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
+
+pt_dat <- read_csv("tbt_dat.csv") %>% # data.frame(s_id = 1:4, assay_value = c(0.23, 1.89, 0.94, 1.44), lpddi = c(10, 20, 30, NA), epddi = c(400, NA, 200, 300)) %>%
+  dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
+  dplyr::select(s_id, assay_value, lpddi, epddi) %>%
+  dplyr::filter(!is.na(assay_value)) %>%
+  dplyr::filter(!is.na(epddi)) %>%
+  dplyr::filter(!(s_id == 513 & assay_value == 1.63)) %>%
+  dplyr::filter(!(s_id == 455 & assay_value == 1.94))
+  
+  # dplyr::mutate(lpddi = ifelse(is.na(lpddi), 0, lpddi))
+
 # source("likelihood_function - geenius.R")
-complete_dataset <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
+complete_dataset <- data.frame(s_id = NA, lpddi = NA, epddi = NA ,  l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
 # assay_value_th_genious <- assay_value_th_genious
 GV_interval_step_genious <- 1
-for (j in 1:length(dat$s_id)) {
-  assay_value_th_genious <- dat$assay_value_th[j]
-  GV_interval_length_genious <- dat$interval_length[j]
-dat_combine <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
-# browser()
-  # for (i in 1:length(dat$assay_value_th_genious)) {
-    # browser()
+for (j in 1:length(pt_dat$s_id)) {
+  # browser()
+  assay_value_th_genious <- pt_dat$assay_value[j]
+  GV_interval_length_genious <- pt_dat$epddi[j]
+  lpddi_val = pt_dat$lpddi[j]
+dat_combine <- data.frame(s_id = NA, lpddi = NA, epddi = NA , l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
     likelihood <- likelihood_fun(
       param_datset = likelihood_param_quad_function(
         dat = as.matrix(pr_t_logit_cubic_Geenius),
@@ -86,9 +96,12 @@ dat_combine <- data.frame(s_id = NA, l = NA, time_t = NA, bigL = NA, assay_value
         t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious) # GV_interval_step_genious
       ),
       assay_value = assay_value_th_genious,
-      t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious) # GV_interval_step_genious
+      t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious), # GV_interval_step_genious,
+      lpddi_val = lpddi_val
     ) %>%
-      dplyr::mutate(assay_value = assay_value_th_genious, s_id = dat$s_id[j], int_length = dat$interval_length[j])
+      dplyr::mutate(assay_value = assay_value_th_genious, s_id = pt_dat$s_id[j], 
+                    lpddi = pt_dat$lpddi[j], epddi = pt_dat$epddi[j], int_length = pt_dat$epddi[j]) %>%
+      dplyr::select(s_id, lpddi, epddi, l, time_t, bigL, assay_value, int_length)
     # browser()
     dat_combine <- rbind(dat_combine, likelihood)
   # }
@@ -125,6 +138,7 @@ complete_dataset <- complete_dataset %>%
 
 percentiles_table <- complete_dataset %>%
   dplyr::mutate(id = paste(s_id, assay_value, sep = '_'))%>%
+  filter(time_t > lpddi) %>%
   group_by(s_id) %>%
   dplyr::mutate(cum_posterior = cumsum(bigL)) %>%
   dplyr::summarise(`mode value` = approx(x = bigL, y = time_t, 
@@ -143,12 +157,14 @@ percentiles_table <- complete_dataset %>%
                                             xout = 0.682)$y, 0) #, method = "constant", ties = mean, rule = 2
             
   ) %>%
-  mutate(assay_value = seq(0.05, 2, 0.05)) %>%
+  right_join(pt_dat, by  = 's_id') %>%
+  # mutate(assay_value = pt_dat$assay_value) %>% #seq(0.05, 2, 0.05)
   dplyr::select(s_id, `assay value` = assay_value, `mode value`, `5th percentile`,
                 `25th percentile`, `50th percentile`, `68.2th percentile` = `68_2th percentile`,
                 `75th percentile`, `95th percentile`)
 
 cumulative_posterior <- complete_dataset %>%
+  dplyr::filter(time_t > lpddi) %>%
   dplyr::group_by(s_id) %>%
   dplyr::mutate(cumsum_posterior = cumsum(bigL)) %>%
   dplyr::mutate(f_T = f_T,
@@ -171,21 +187,37 @@ merged_dataset <- cumulative_posterior %>%
   distinct(id, .keep_all = T) %>%
   dplyr::mutate(window_probs_t1 = cumsum_posterior.y - cumsum_posterior.x) 
 summary_dataset_2 <- merged_dataset %>%
+  dplyr::filter(!is.na(s_id)) %>%
+  group_by(s_id) %>%
+  dplyr::mutate(visits = 1:length(s_id),
+         n_visits = max(visits)) %>%
+  dplyr::filter(n_visits >1) %>%
+  ungroup()
+summary_dataset_3 <- summary_dataset_2 %>%
   group_by(s_id) %>%
   dplyr::summarise(max_window_prob = approx(x = window_probs_t1, y = time_t, 
                                     xout = max(window_probs_t1, na.rm = T))$y # , method = "constant", ties = mean, rule = 2
   )
 
 f_t_results <- merged_dataset %>%
+  dplyr::filter(!is.na(s_id)) %>%
   dplyr::mutate(id = paste(s_id, time_t, sep = '_')) %>%
-  right_join(summary_dataset_2 %>% mutate(id = paste(s_id, max_window_prob, sep = '_'))) %>%
+  right_join(summary_dataset_3 %>% mutate(id = paste(s_id, max_window_prob, sep = '_'))) %>%
   dplyr::mutate(`f_t ide radius` = (t1_f_T - t1)/2,
                 `f_t ide midpoint` = t1 + `f_t ide radius`) %>%
-  dplyr::select(s_id, assay_value, int_length, f_T, window_probs_t1, ide_f_t_lower = t1, 
+  right_join(pt_dat, by = 's_id') %>%
+  dplyr::select(s_id, assay_value = assay_value.x, int_length, f_T, window_probs_t1, ide_f_t_lower = t1, 
                 window_size, ide_f_t_upper = t1_f_T, `f_t ide radius`,
                 `f_t ide midpoint`)
 
 cumulative_posterior <- complete_dataset %>%
+  dplyr::filter(time_t > lpddi) %>%
+  dplyr::filter(!is.na(s_id)) %>%
+  group_by(s_id) %>%
+  dplyr::mutate(visits = 1:length(s_id),
+                n_visits = max(visits)) %>%
+  dplyr::filter(n_visits >1) %>%
+  ungroup() %>%
   group_by(s_id) %>%
   dplyr::mutate(cumsum_posterior = cumsum(bigL)) %>%
   dplyr::mutate(f_T = f_T,
@@ -196,19 +228,24 @@ cumulative_posterior <- complete_dataset %>%
   mutate(id  = paste(s_id, t1, sep = '_'))
 
 dt2 <- data.frame(id = NA, f_p = NA, cum_prob = NA, sum_prob = NA, t_1_val = NA, t_2_val = NA, t_diff = NA)
+x <- unique(cumulative_posterior$s_id)
 for (i in 1:length(unique(cumulative_posterior$s_id))) {
   dat <- cumulative_posterior %>%
     ungroup() %>%
-    filter(s_id == i) %>%
+    filter(s_id == x[i]) %>%
     dplyr::select(s_id, time_t, cumsum_posterior)
   t_1 <- dat$time_t[1]
   cum_prob <- dat$cumsum_posterior[1]
+  max_time <- max(dat$time_t, na.rm = T)
+  # print(i)
+  #browser()
   dt <- data.frame(id = NA, f_p = NA, cum_prob = NA, sum_prob = NA, t_1_val = NA, t_2_val = NA, t_diff = NA)
-  while ((cum_prob) < (1 - f_p)) {
+  while ((cum_prob) < (1 - f_p) && t_1 <= max_time) {
+    # print(t_1)
     prob_sum <- cum_prob + f_p
     t_2 <- round(approx(x = dat$cumsum_posterior, y = dat$time_t, 
                   xout = prob_sum)$y, 0) #, method = "constant", ties = mean, rule = 2
-    dt <- rbind(dt, cbind(id = dat$s_id[i], f_p = f_p, cum_prob = cum_prob, sum_prob = prob_sum, t_1_val = t_1, t_2_val = t_2, t_diff = t_2 - t_1))
+    dt <- rbind(dt, cbind(id = x[i], f_p = f_p, cum_prob = cum_prob, sum_prob = prob_sum, t_1_val = t_1, t_2_val = t_2, t_diff = t_2 - t_1))
     t_1 <- t_1 + 1
     cum_prob <- dat$cumsum_posterior[dat$time_t==t_1]
   }
@@ -217,7 +254,7 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
 ide_summary_table <- dt2 %>%
   dplyr::filter(!is.na(id)) %>%
   group_by(id) %>%
-  dplyr::mutate(min_diff = min(t_diff)) %>%
+  dplyr::mutate(min_diff = min(t_diff, na.rm = T)) %>%
   filter(t_diff == min_diff) %>%
   dplyr::mutate(ide_lower = min(t_1_val, na.rm = T),
                 ide_upper = max(t_2_val, na.rm = T)
@@ -228,7 +265,9 @@ ide_summary_table <- dt2 %>%
   distinct(id, .keep_all = T) %>%
   dplyr::select(id, f_p, ide_lower, ide_upper, ide_midpoint, ide_radius) %>%
   left_join(f_t_results %>% mutate(id = s_id), by = 'id') %>%
-  dplyr::select(id, assay_value, f_T, f_p, int_length, `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
+  right_join(pt_dat %>% mutate(id = s_id), by = 'id') %>%
+  # dplyr::mutate(assay_value.y) %>%
+  dplyr::select(id, assay_value = assay_value.y, f_T, f_p, int_length, `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
                 `f_p ide midpoint` = ide_midpoint, `f_p ide radius` = ide_radius, 
                 `f_t window prob` = window_probs_t1, `f_t window_size` = window_size, `f_t ide lower` = ide_f_t_lower, 
                 `f_t ide upper` = ide_f_t_upper, `f_t ide midpoint`,
