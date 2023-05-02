@@ -68,13 +68,13 @@ f_T <- 0.2
 f_p <- .5
 # dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
 
-pt_dat <- read_csv("tbt_dat.csv") %>% # data.frame(s_id = 1:4, assay_value = c(0.23, 1.89, 0.94, 1.44), lpddi = c(10, 20, 30, NA), epddi = c(400, NA, 200, 300)) %>%
-  dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
-  dplyr::select(s_id, assay_value, lpddi, epddi) %>%
-  dplyr::filter(!is.na(assay_value)) %>%
-  dplyr::filter(!is.na(epddi)) %>%
-  dplyr::filter(!(s_id == 513 & assay_value == 1.63)) %>%
-  dplyr::filter(!(s_id == 455 & assay_value == 1.94))
+pt_dat <-  data.frame(s_id = 1, assay_value = c(2.8), lpddi = c(125), epddi = c(325)) #%>% #%>% # read_csv("tbt_dat.csv")d
+  # dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
+  # dplyr::select(s_id, assay_value, lpddi, epddi) %>%
+  # dplyr::filter(!is.na(assay_value)) %>%
+  # dplyr::filter(!is.na(epddi)) %>%
+  # dplyr::filter(!(s_id == 513 & assay_value == 1.63)) %>%
+  # dplyr::filter(!(s_id == 455 & assay_value == 1.94))
   
   # dplyr::mutate(lpddi = ifelse(is.na(lpddi), 0, lpddi))
 
@@ -100,7 +100,7 @@ dat_combine <- data.frame(s_id = NA, lpddi = NA, epddi = NA , l = NA, time_t = N
       lpddi_val = lpddi_val
     ) %>%
       dplyr::mutate(assay_value = assay_value_th_genious, s_id = pt_dat$s_id[j], 
-                    lpddi = pt_dat$lpddi[j], epddi = pt_dat$epddi[j], int_length = pt_dat$epddi[j]) %>%
+                    lpddi = pt_dat$lpddi[j], epddi = pt_dat$epddi[j], int_length = pt_dat$epddi[j]- pt_dat$lpddi[j]) %>%
       dplyr::select(s_id, lpddi, epddi, l, time_t, bigL, assay_value, int_length)
     # browser()
     dat_combine <- rbind(dat_combine, likelihood)
@@ -113,32 +113,32 @@ complete_dataset <- complete_dataset %>%
   filter(!is.na(time_t)) %>%
   dplyr::mutate(`assay value` = as.factor(assay_value))
 
-# plot2 <- ggplot(
-#   data = complete_dataset,
-#   aes(x = time_t, y = bigL, colour = `assay value`)
-# ) +
-#   geom_line(size = 2.0) +
-#   xlab("Date of infection (days)") +
-#   ylab("Posterior Density") +
-#   theme_bw() +
-#   scale_x_reverse(expand = c(0, 0)) +
-#   scale_y_continuous(breaks = c(0)) +
-#   scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
-#   coord_fixed(ratio = 1) +
-#   theme(
-#     text = element_text(size = 18),
-#     axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
-#     panel.grid.minor = element_blank(), panel.background = element_blank(),
-#     panel.border = element_blank(),
-#     aspect.ratio = 1,
-#     plot.margin = unit(c(0, 0, 0, 0), "null")
-#   )
-# 
-# plot2
+plot2 <- ggplot(
+  data = complete_dataset,
+  aes(x = time_t, y = bigL, colour = `assay value`)
+) +
+  geom_line(size = 2.0) +
+  xlab("Date of infection (days)") +
+  ylab("Posterior Density") +
+  theme_bw() +
+  scale_x_reverse(expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(0)) +
+  scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
+  coord_fixed(ratio = 1) +
+  theme(
+    text = element_text(size = 18),
+    axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), panel.background = element_blank(),
+    panel.border = element_blank(),
+    aspect.ratio = 1,
+    plot.margin = unit(c(0, 0, 0, 0), "null")
+  )
+
+plot2
 
 percentiles_table <- complete_dataset %>%
   dplyr::mutate(id = paste(s_id, assay_value, sep = '_'))%>%
-  filter(time_t > lpddi) %>%
+  # filter(time_t > lpddi) %>%
   group_by(s_id) %>%
   dplyr::mutate(cum_posterior = cumsum(bigL)) %>%
   dplyr::summarise(`mode value` = approx(x = bigL, y = time_t, 
@@ -164,7 +164,7 @@ percentiles_table <- complete_dataset %>%
                 `75th percentile`, `95th percentile`)
 
 cumulative_posterior <- complete_dataset %>%
-  dplyr::filter(time_t > lpddi) %>%
+  # dplyr::filter(time_t > lpddi) %>%
   dplyr::group_by(s_id) %>%
   dplyr::mutate(cumsum_posterior = cumsum(bigL)) %>%
   dplyr::mutate(f_T = f_T,
@@ -211,7 +211,7 @@ f_t_results <- merged_dataset %>%
                 `f_t ide midpoint`)
 
 cumulative_posterior <- complete_dataset %>%
-  dplyr::filter(time_t > lpddi) %>%
+  # dplyr::filter(time_t > lpddi) %>%
   dplyr::filter(!is.na(s_id)) %>%
   group_by(s_id) %>%
   dplyr::mutate(visits = 1:length(s_id),
@@ -243,8 +243,8 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
   while ((cum_prob) < (1 - f_p) && t_1 <= max_time) {
     # print(t_1)
     prob_sum <- cum_prob + f_p
-    t_2 <- round(approx(x = dat$cumsum_posterior, y = dat$time_t, 
-                  xout = prob_sum)$y, 0) #, method = "constant", ties = mean, rule = 2
+    t_2 <- approx(x = dat$cumsum_posterior, y = dat$time_t, 
+                  xout = prob_sum)$y #, method = "constant", ties = mean, rule = 2
     dt <- rbind(dt, cbind(id = x[i], f_p = f_p, cum_prob = cum_prob, sum_prob = prob_sum, t_1_val = t_1, t_2_val = t_2, t_diff = t_2 - t_1))
     t_1 <- t_1 + 1
     cum_prob <- dat$cumsum_posterior[dat$time_t==t_1]

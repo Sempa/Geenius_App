@@ -183,14 +183,18 @@ likelihood_fun <- function(param_datset, assay_value, t_since_ln, lpddi_val) {
         bigL = l / (trapz(time_t, l))
       )
   }else{
-    likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
+    # browser()
+    likelihood_non_normalised <- data.frame(l= ifelse(l<0, 0, l)) %>%#
+      mutate(t_since_ln = t_since_ln, 
+             l_with_lpddi_offset = ifelse(t_since_ln < lpddi_val,0, l))
+    auc <- trapz(likelihood_non_normalised$t_since_ln, likelihood_non_normalised$l_with_lpddi_offset)
+    likelihood_normalised <- likelihood_non_normalised %>%
     mutate(
-      # lpddi_val = rep(lpddi_val, length(t_since_ln)),
       time_t = t_since_ln,
-      bigL = ifelse(t_since_ln > lpddi_val, l / (trapz(time_t, l)), 0)
+      bigL = l_with_lpddi_offset / auc
     )
   }
   
-  return(likelihood)
+  return(likelihood_normalised)
 }
 # GV_vec_time  = seq(0, 1000, 1)
