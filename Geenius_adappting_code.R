@@ -64,11 +64,39 @@ pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 #            pct = 0.2) = 20
 # percentile_func(vec_x = c(1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 5, 5, 6, 6), pct = .25) = 2
 
+pr_t_plots <- ggplot(
+  data = pr_t_logit_cubic_Geenius %>% 
+    filter(threshold %in% c(2, 2.5, 3, 3.5)) %>%
+    mutate(`Assay threshold` = as.factor(threshold), time_var = GV_vec_time),
+  aes(x = time_var, y = pr_t, group = `Assay threshold`, colour = `Assay threshold`)
+) +
+  geom_line(size = 2.2) +
+  # geom_smooth(se = F, span = 1, size = 1.5) +
+  xlab("Time since infection (days)") +
+  ylab("P_r (t)") +
+  theme_bw() +
+  scale_x_continuous(limits = c(0, 610), breaks = c(seq(0, 610, 100)), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 1 + .02), breaks = c(seq(0, 1, .5)), expand = c(0, 0)) +
+  scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F", "#FF7F00", "#CAB2D6", "#6A3D9A")) + #scale_colour_brewer(palette = "Paired")) +
+  theme(
+    text = element_text(size = 18),
+    plot.title = element_text(hjust = 0.5),
+    axis.line = element_line(colour = "black"), # panel.grid.major = element_blank(),
+    # panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 18),
+    panel.background = element_blank(),
+    panel.border = element_blank(),
+    aspect.ratio = 1,
+    plot.margin=unit(c(0,0,0,0), "null")
+  )
+pr_t_plot
+
 f_T <- 0.2
 f_p <- .5
 # dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
 
-pt_dat <-  data.frame(s_id = 1, assay_value = c(2.8), lpddi = c(125), epddi = c(325)) #%>% #%>% # read_csv("tbt_dat.csv")d
+pt_dat <-  data.frame(s_id = 1, assay_value = c(3.5), lpddi = c(125), epddi = c(2000)) #%>% #%>% # read_csv("tbt_dat.csv")d
   # dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
   # dplyr::select(s_id, assay_value, lpddi, epddi) %>%
   # dplyr::filter(!is.na(assay_value)) %>%
@@ -93,10 +121,10 @@ dat_combine <- data.frame(s_id = NA, lpddi = NA, epddi = NA , l = NA, time_t = N
         dat = as.matrix(pr_t_logit_cubic_Geenius),
         target_assay_value = assay_value_th_genious,
         around_assay_value = seq(0.01, 3, .15),
-        t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious) # GV_interval_step_genious
+        time_t = seq(0, GV_interval_length_genious, GV_interval_step_genious) # GV_interval_step_genious
       ),
       assay_value = assay_value_th_genious,
-      t_since_ln = seq(0, GV_interval_length_genious, GV_interval_step_genious), # GV_interval_step_genious,
+      time_t = seq(0, GV_interval_length_genious, GV_interval_step_genious), # GV_interval_step_genious,
       lpddi_val = lpddi_val
     ) %>%
       dplyr::mutate(assay_value = assay_value_th_genious, s_id = pt_dat$s_id[j], 
@@ -122,7 +150,7 @@ plot2 <- ggplot(
   ylab("Posterior Density") +
   theme_bw() +
   scale_x_reverse(expand = c(0, 0)) +
-  scale_y_continuous(breaks = c(0)) +
+  scale_y_continuous(breaks = c(0), expand = c(0, 0)) + 
   scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
   coord_fixed(ratio = 1) +
   theme(
@@ -208,7 +236,7 @@ f_t_results <- merged_dataset %>%
   right_join(pt_dat, by = 's_id') %>%
   dplyr::select(s_id, assay_value = assay_value.x, int_length, f_T, window_probs_t1, ide_f_t_lower = t1, 
                 window_size, ide_f_t_upper = t1_f_T, `f_t ide radius`,
-                `f_t ide midpoint`)
+                `f_t ide midpoint`, lpddi, epddi)
 
 cumulative_posterior <- complete_dataset %>%
   # dplyr::filter(time_t > lpddi) %>%
@@ -254,20 +282,22 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
 ide_summary_table <- dt2 %>%
   dplyr::filter(!is.na(id)) %>%
   group_by(id) %>%
-  dplyr::mutate(min_diff = min(t_diff, na.rm = T)) %>%
-  filter(t_diff == min_diff) %>%
-  dplyr::mutate(ide_lower = min(t_1_val, na.rm = T),
-                ide_upper = max(t_2_val, na.rm = T)
-                ) %>%
+  # dplyr::mutate(min_diff = min(t_diff, na.rm = T)) %>%
+  # filter(t_diff == min_diff) %>%
+  # dplyr::mutate(ide_lower = min(t_1_val, na.rm = T),
+  #               ide_upper = max(t_2_val, na.rm = T)
+  #               ) %>%
   dplyr::mutate(ide_midpoint = ide_lower + (ide_upper-ide_lower)/2,
-                ide_radius = (ide_upper-ide_lower)/2) %>%
+                ide_radius = (ide_upper-ide_lower)/2,
+                `f_p window size` = ide_upper-ide_lower) %>%
   ungroup() %>%
   distinct(id, .keep_all = T) %>%
   dplyr::select(id, f_p, ide_lower, ide_upper, ide_midpoint, ide_radius) %>%
   left_join(f_t_results %>% mutate(id = s_id), by = 'id') %>%
   right_join(pt_dat %>% mutate(id = s_id), by = 'id') %>%
   # dplyr::mutate(assay_value.y) %>%
-  dplyr::select(id, assay_value = assay_value.y, f_T, f_p, int_length, `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
+  dplyr::select(id, assay_value = assay_value.y, f_T, f_p, lpddi, epddi, int_length, 
+                `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
                 `f_p ide midpoint` = ide_midpoint, `f_p ide radius` = ide_radius, 
                 `f_t window prob` = window_probs_t1, `f_t window_size` = window_size, `f_t ide lower` = ide_f_t_lower, 
                 `f_t ide upper` = ide_f_t_upper, `f_t ide midpoint`,

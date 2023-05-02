@@ -21,7 +21,7 @@ func_cloglog_cubic <- function(t, parameters) {
   parameters[1] - (1 - exp(-exp(parameters[2] + parameters[3] * t + parameters[4] * t^2 + parameters[5] * t^3)))
 }
 
-pct_vs_t_fun_logit_quad <- function(data_set, assay_valueTh, t_since_inf, percentile) {
+pct_vs_t_fun_logit_quad <- function(data_set, assay_valueTh, time_t, percentile) {
   pct_vs_t <- c(0)
   dat <- data_set %>%
     mutate(eddi_1 = eddi, eddi_2 = eddi^2, eddi_3 = eddi^3)
@@ -56,7 +56,7 @@ pct_vs_t_fun_logit_quad <- function(data_set, assay_valueTh, t_since_inf, percen
 }
 
 
-pct_vs_t_fun_cloglog_cubic <- function(data_set, assay_valueTh, t_since_inf, percentile) {
+pct_vs_t_fun_cloglog_cubic <- function(data_set, assay_valueTh, time_t, percentile) {
   pct_vs_t <- c(0)
   dat <- data_set %>%
     mutate(eddi_1 = eddi, eddi_2 = eddi^2, eddi_3 = eddi^3)
@@ -91,7 +91,7 @@ pct_vs_t_fun_cloglog_cubic <- function(data_set, assay_valueTh, t_since_inf, per
 }
 
 
-pct_vs_t_fun_logit_cubic <- function(data_set, assay_valueTh, t_since_inf, percentile) {
+pct_vs_t_fun_logit_cubic <- function(data_set, assay_valueTh, time_t, percentile) {
   pct_vs_t <- c(0)
   dat <- data_set %>%
     mutate(eddi_1 = eddi, eddi_2 = eddi^2, eddi_3 = eddi^3)

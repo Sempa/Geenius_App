@@ -113,7 +113,7 @@ nearest_numbers <- function(value_x, vec_y, to_select) {
 #' @param dat a dataset of Pr_t values by assay_value threshold and per day over 1000 daystime that's brought in as a matrix.
 #' @param value_x Patient assay_value as measurement, after the first HIV positive test.
 #' @param to_select number to be selected from of ODns closest of the target assay_value, to be selected.
-#' @param t_since_ln duration of inter-test interval.
+#' @param time_t duration of inter-test interval.
 #'
 # if (GV_AssayName == "LAg-Sedia" | GV_AssayName == "LAg-Maxim"){
 #   vec_y <- seq(0.01, 5, GV_assay_value_stepsize)
@@ -124,7 +124,7 @@ nearest_numbers <- function(value_x, vec_y, to_select) {
 # } else if(GV_AssayName == 'ArchitectUnmodified'){
 #   vec_y <- seq(0, 870, GV_assay_value_stepsize)
 # }
-likelihood_param_quad_function <- function(dat, target_assay_value, around_assay_value, t_since_ln) {
+likelihood_param_quad_function <- function(dat, target_assay_value, around_assay_value, time_t) {
   # browser()
   vec_x <- c(nearest_numbers(value_x = target_assay_value, vec_y = around_assay_value, to_select = 6))
   dat <- subset(as.data.frame(dat), threshold %in% vec_x)#dat <- subset(as.data.frame(dat) %>% mutate(x=as.character(threshold)), x %in% as.character(vec_x))
@@ -135,15 +135,15 @@ likelihood_param_quad_function <- function(dat, target_assay_value, around_assay
     quad_term = NA
   )
   counter <- 0
-  for (i in 1:length(t_since_ln)) {
+  for (i in 1:length(time_t)) {
     counter <- counter + 1
     m1 <- suppressWarnings(glm2::glm2(pr_t ~ 1 + threshold + I(threshold^2), #
                                       family = stats::gaussian(link = "identity"),
-                                      data = subset(dat, GV_vec_time == t_since_ln[i])
+                                      data = subset(dat, GV_vec_time == time_t[i])
     ))
     
     pr_t_slope_data[counter, ] <- c(
-      t_var = t_since_ln[i], #GV_vec_time[i],
+      t_var = time_t[i], #GV_vec_time[i],
       intercept = m1$coefficients[[1]],
       linear_term = m1$coefficients[[2]],
       quad_term = m1$coefficients[[3]]
@@ -159,15 +159,15 @@ likelihood_param_quad_function <- function(dat, target_assay_value, around_assay
 #' @param param_datset dataset of intercept (not really important as it doesn't get used),
 #' linear, and quadratic terms that are used in evaluating the quad function.
 #' @param assay_value is the target assay_value
-#' @param t_since_ln vector of time points in the inter-test interval
+#' @param time_t vector of time points in the inter-test interval
 #'
-likelihood_fun <- function(param_datset, assay_value, t_since_ln, lpddi_val) {
+likelihood_fun <- function(param_datset, assay_value, time_t, lpddi_val) {
   # browser()
-  l <- rep(0, length(t_since_ln))
+  l <- rep(0, length(time_t))
   ff <- expression(1 + param1 * t + param2 * t^2)
   f <- D(ff, "t")
   counter <- 0
-  for (j in 1:length(t_since_ln)) {
+  for (j in 1:length(time_t)) {
     counter <- counter + 1
     param1 <- as.numeric(param_datset$linear_term[[j]])
     param2 <- as.numeric(param_datset$quad_term[[j]])
@@ -178,19 +178,19 @@ likelihood_fun <- function(param_datset, assay_value, t_since_ln, lpddi_val) {
   if(is.na(lpddi_val)) {
     likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
       mutate(
-        # lpddi_val = rep(lpddi_val, length(t_since_ln)),
-        time_t = t_since_ln,
+        # lpddi_val = rep(lpddi_val, length(time_t)),
+        time_t = time_t,
         bigL = l / (trapz(time_t, l))
       )
   }else{
     # browser()
     likelihood_non_normalised <- data.frame(l= ifelse(l<0, 0, l)) %>%#
-      mutate(t_since_ln = t_since_ln, 
-             l_with_lpddi_offset = ifelse(t_since_ln < lpddi_val,0, l))
-    auc <- trapz(likelihood_non_normalised$t_since_ln, likelihood_non_normalised$l_with_lpddi_offset)
+      mutate(time_t = time_t, 
+             l_with_lpddi_offset = ifelse(time_t < lpddi_val,0, l))
+    auc <- trapz(likelihood_non_normalised$time_t, likelihood_non_normalised$l_with_lpddi_offset)
     likelihood_normalised <- likelihood_non_normalised %>%
     mutate(
-      time_t = t_since_ln,
+      time_t = time_t,
       bigL = l_with_lpddi_offset / auc
     )
   }
