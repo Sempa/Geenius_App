@@ -25,46 +25,8 @@ source("likelihood_function - generic.R")
 pct_vs_t_logit_cubic_Geenius <- readRDS("data/pct_data_logitcubic_Geenius.rds")
 # likelihood data
 pr_t_logit_cubic_Geenius <- readRDS("data/pr_t_logit_evaluations_Geenius.rds")
-pr_t_loglog_cubic_Geenius <- readRDS("data/pr_t_loglog_evaluations_Geenius.rds")
 
-# pct_plot <- ggplot(
-#   data = pct_vs_t_logit_cubic_Geenius, # subset(data_merge, model_cat == model_type[i]),
-#   aes(x = pct_vs_t, y = threshold, group = percentile, color = percentile)
-# ) +
-#   geom_smooth(se = F, span = .95, size = 2.5) +
-#   xlab("Time since infection (days)") +
-#   ylab("ODn") +
-#   theme_bw() +
-#   scale_x_continuous(limits = c(0, 610), breaks = c(seq(0, 610, 200)), expand = c(0, 0)) +
-#   scale_colour_brewer(palette = "Paired") +
-#   coord_cartesian(ylim = c(0, 3 + .02)) +
-#   theme(
-#     text = element_text(size = 20),
-#     plot.title = element_text(hjust = 0.5),
-#     axis.line = element_line(colour = "black"), # panel.grid.major = element_blank(),
-#     # panel.grid.minor = element_blank(),
-#     axis.text = element_text(size = 18),
-#     axis.title = element_text(size = 18),
-#     panel.background = element_blank(),
-#     panel.border = element_blank(),
-#     aspect.ratio = 1,
-#     plot.margin = unit(c(0, 0, 0, 0), "null")
-#   )
-# pct_plot
-
-# percentile_func <- function(vec_x, pct) {
-#   # browser()
-#   i_th_observation <- round(pct * (length(vec_x) + 1), 0)
-#   return(vec_x[i_th_observation])
-# }
-
-# percentile_func(vec_x = c(1, 3, 5, 6, 9, 11, 12, 13, 19, 21, 22, 32, 35, 36, 45, 44,
-#                      55, 68, 79, 80, 81, 88, 90, 91, 92, 100, 112, 113, 114,
-#                      120, 121, 132, 145, 146, 149, 150, 155, 180, 189, 190),
-#            pct = 0.2) = 20
-# percentile_func(vec_x = c(1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 5, 5, 6, 6), pct = .25) = 2
-
-pr_t_plots <- ggplot(
+pr_t_plot <- ggplot(
   data = pr_t_logit_cubic_Geenius %>% 
     filter(threshold %in% c(2, 2.5, 3, 3.5)) %>%
     mutate(`Assay threshold` = as.factor(threshold), time_var = GV_vec_time),
@@ -96,15 +58,14 @@ f_T <- 0.2
 f_p <- .5
 # dat <- data.frame(s_id = 1:length(seq(0.05, 2, 0.01)), assay_value = seq(0.05, 2, 0.01), interval_length = rep(400, length(seq(0.05, 2, 0.01))))# assay_value <- c(.2, .3 ,.5, 1.5, 2, 2.5, 4)
 
-pt_dat <-  data.frame(s_id = 1, assay_value = c(3.5), lpddi = c(125), epddi = c(2000)) #%>% #%>% # read_csv("tbt_dat.csv")d
-  # dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
-  # dplyr::select(s_id, assay_value, lpddi, epddi) %>%
-  # dplyr::filter(!is.na(assay_value)) %>%
-  # dplyr::filter(!is.na(epddi)) %>%
-  # dplyr::filter(!(s_id == 513 & assay_value == 1.63)) %>%
-  # dplyr::filter(!(s_id == 455 & assay_value == 1.94))
-  
-  # dplyr::mutate(lpddi = ifelse(is.na(lpddi), 0, lpddi))
+pt_dat <- read_csv("tbt_dat.csv") %>% #data.frame(s_id = 1:4, assay_value = c(0.8, 1.2, 1.6, 2.0), lpddi = rep(25, 4), epddi = rep(425, 4)) #%>% #  #%>% # d
+  dplyr::mutate(assay_value = round(assay_val, 2), epddi = EPDDI, lpddi = LPDDI) %>%
+  dplyr::select(s_id, assay_value, lpddi, epddi) %>%
+  dplyr::filter(!is.na(assay_value)) %>%
+  dplyr::filter(!is.na(epddi)) %>%
+  dplyr::filter(!(s_id == 513 & assay_value == 1.63)) %>%
+  dplyr::filter(!(s_id == 455 & assay_value == 1.94)) %>%
+  dplyr::mutate(assay_value = ifelse(assay_value == 0, 0.03, assay_value))
 
 # source("likelihood_function - geenius.R")
 complete_dataset <- data.frame(s_id = NA, lpddi = NA, epddi = NA ,  l = NA, time_t = NA, bigL = NA, assay_value  = NA, int_length = NA)
@@ -133,36 +94,43 @@ dat_combine <- data.frame(s_id = NA, lpddi = NA, epddi = NA , l = NA, time_t = N
     # browser()
     dat_combine <- rbind(dat_combine, likelihood)
   # }
-  
+  # print(j)
   complete_dataset <- rbind(complete_dataset, dat_combine)
 }
 
 complete_dataset <- complete_dataset %>%
   filter(!is.na(time_t)) %>%
-  dplyr::mutate(`assay value` = as.factor(assay_value))
+  filter(!is.na(bigL)) %>%
+  dplyr::mutate(`assay value` = as.factor(assay_value)) 
 
-plot2 <- ggplot(
-  data = complete_dataset,
-  aes(x = time_t, y = bigL, colour = `assay value`)
-) +
-  geom_line(size = 2.0) +
-  xlab("Date of infection (days)") +
-  ylab("Posterior Density") +
-  theme_bw() +
-  scale_x_reverse(expand = c(0, 0)) +
-  scale_y_continuous(breaks = c(0), expand = c(0, 0)) + 
-  scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
-  coord_fixed(ratio = 1) +
-  theme(
-    text = element_text(size = 18),
-    axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(), panel.background = element_blank(),
-    panel.border = element_blank(),
-    aspect.ratio = 1,
-    plot.margin = unit(c(0, 0, 0, 0), "null")
-  )
-
-plot2
+# plot2 <- ggplot(
+#   data = complete_dataset,
+#   aes(x = time_t, y = bigL, colour = `assay value`)
+# ) +
+#   geom_line(size = 2.0) +
+#   xlab("Date of infection (days)") +
+#   ylab("Posterior Density") +
+#   theme_bw() +
+#   scale_x_reverse(expand = c(0, 0)) +
+#   scale_y_continuous(breaks = c(0), expand = c(0, 0)) + 
+#   scale_colour_manual(values = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C")) + # , "#6A3D9A"
+#   coord_fixed(ratio = 1) +
+#   theme(
+#     text = element_text(size = 18),
+#     axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank(), panel.background = element_blank(),
+#     panel.border = element_blank(),
+#     aspect.ratio = 1,
+#     plot.margin = unit(c(0, 0, 0, 0), "null")
+#   )
+# 
+# plot2
+# 
+# jpeg("figures/plot2.jpeg", units = "in", width = 10, height = 10, res = 300)
+# 
+# plot2
+# 
+# dev.off()
 
 percentiles_table <- complete_dataset %>%
   dplyr::mutate(id = paste(s_id, assay_value, sep = '_'))%>%
@@ -191,6 +159,8 @@ percentiles_table <- complete_dataset %>%
                 `25th percentile`, `50th percentile`, `68.2th percentile` = `68_2th percentile`,
                 `75th percentile`, `95th percentile`)
 
+# write.csv(percentiles_table, 'percentiles_table.csv')
+
 cumulative_posterior <- complete_dataset %>%
   # dplyr::filter(time_t > lpddi) %>%
   dplyr::group_by(s_id) %>%
@@ -218,8 +188,10 @@ summary_dataset_2 <- merged_dataset %>%
   dplyr::filter(!is.na(s_id)) %>%
   group_by(s_id) %>%
   dplyr::mutate(visits = 1:length(s_id),
-         n_visits = max(visits)) %>%
+         n_visits = max(visits),
+         max_window_probs_t1 = max(window_probs_t1, na.rm = T)) %>%
   dplyr::filter(n_visits >1) %>%
+  dplyr::filter(max_window_probs_t1 !=0) %>% # dropped these records because we can't estimate their respective t_2. The window probability is basically zero
   ungroup()
 summary_dataset_3 <- summary_dataset_2 %>%
   group_by(s_id) %>%
@@ -236,7 +208,7 @@ f_t_results <- merged_dataset %>%
   right_join(pt_dat, by = 's_id') %>%
   dplyr::select(s_id, assay_value = assay_value.x, int_length, f_T, window_probs_t1, ide_f_t_lower = t1, 
                 window_size, ide_f_t_upper = t1_f_T, `f_t ide radius`,
-                `f_t ide midpoint`, lpddi, epddi)
+                `f_t ide midpoint`, lpddi = lpddi.y, epddi = epddi.y)
 
 cumulative_posterior <- complete_dataset %>%
   # dplyr::filter(time_t > lpddi) %>%
@@ -282,11 +254,11 @@ for (i in 1:length(unique(cumulative_posterior$s_id))) {
 ide_summary_table <- dt2 %>%
   dplyr::filter(!is.na(id)) %>%
   group_by(id) %>%
-  # dplyr::mutate(min_diff = min(t_diff, na.rm = T)) %>%
-  # filter(t_diff == min_diff) %>%
-  # dplyr::mutate(ide_lower = min(t_1_val, na.rm = T),
-  #               ide_upper = max(t_2_val, na.rm = T)
-  #               ) %>%
+  dplyr::mutate(min_diff = min(t_diff, na.rm = T)) %>%
+  filter(t_diff == min_diff) %>%
+  dplyr::mutate(ide_lower = min(t_1_val, na.rm = T),
+                ide_upper = max(t_2_val, na.rm = T)
+                ) %>%
   dplyr::mutate(ide_midpoint = ide_lower + (ide_upper-ide_lower)/2,
                 ide_radius = (ide_upper-ide_lower)/2,
                 `f_p window size` = ide_upper-ide_lower) %>%
@@ -296,10 +268,11 @@ ide_summary_table <- dt2 %>%
   left_join(f_t_results %>% mutate(id = s_id), by = 'id') %>%
   right_join(pt_dat %>% mutate(id = s_id), by = 'id') %>%
   # dplyr::mutate(assay_value.y) %>%
-  dplyr::select(id, assay_value = assay_value.y, f_T, f_p, lpddi, epddi, int_length, 
+  dplyr::select(id, assay_value = assay_value.y, f_T, f_p, lpddi = lpddi.y, epddi = epddi.y, int_length, 
                 `f_p ide lower` = ide_lower, `f_p ide upper` = ide_upper, 
                 `f_p ide midpoint` = ide_midpoint, `f_p ide radius` = ide_radius, 
                 `f_t window prob` = window_probs_t1, `f_t window_size` = window_size, `f_t ide lower` = ide_f_t_lower, 
                 `f_t ide upper` = ide_f_t_upper, `f_t ide midpoint`,
                 `f_t ide radius`
                 )
+# write.csv(ide_summary_table, 'ide_summary_table.csv')

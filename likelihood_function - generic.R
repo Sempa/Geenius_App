@@ -176,7 +176,7 @@ likelihood_fun <- function(param_datset, assay_value, time_t, lpddi_val) {
   }
   # browser()
   if(is.na(lpddi_val)) {
-    likelihood <- data.frame(l= ifelse(l<0, 0, l)) %>%#
+    likelihood_normalised <- data.frame(l= ifelse(l<0, 0, l)) %>%#
       mutate(
         # lpddi_val = rep(lpddi_val, length(time_t)),
         time_t = time_t,
